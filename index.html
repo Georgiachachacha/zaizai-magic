@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZaiZai's Magic</title>
+    <style>
+        .game-container {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 40px;
+        }
+
+        .card {
+            aspect-ratio: 1;
+            background-color: #f0f0f0;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.3s;
+            position: relative;
+            background-image: url('images/card-back.jpg');
+            background-size: cover;
+            width: 300px;
+            height: 300px;
+        }
+
+        .card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 8px;
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        .card.flipped {
+            background-image: none;
+        }
+
+        .card.flipped img {
+            display: block !important;
+            z-index: 1;
+        }
+
+        .card.matched {
+            background-color: #90EE90;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            font-size: 3em;
+            font-family: 'Arial', sans-serif;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+            margin-bottom: 30px;
+        }
+
+        .score {
+            text-align: center;
+            margin-bottom: 40px;
+            font-size: 2.4em;
+        }
+
+        /* Updated Firework styles */
+        .firework {
+            position: fixed;
+            pointer-events: none;
+            z-index: 999;
+            animation: explode 5s ease-out forwards;
+        }
+
+        @keyframes explode {
+            0% {
+                transform: scale(0);
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.8;
+            }
+            100% {
+                transform: scale(5); /* Increased from 2 to 5 for 500% size */
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>ZaiZai's Magic</h1>
+    <div class="score">Moves: <span id="moves">0</span> / 15</div>
+    <div class="game-container" id="gameContainer"></div>
+
+    <script>
+        // Change move limit constant to 15
+        const MOVE_LIMIT = 15;
+        
+        // Update the score display to show new move limit
+        document.querySelector('.score').innerHTML = `Moves: <span id="moves">0</span> / ${MOVE_LIMIT}`;
+        
+        // Add console logging to check image loading
+        const catImages = [
+            'images/cat1.jpg',
+            'images/cat2.jpg',
+            'images/cat3.jpg',
+            'images/cat4.jpg',
+            'images/cat5.jpg',
+            'images/cat6.jpg',
+            'images/cat7.jpg',
+            'images/cat8.jpg'
+        ];
+        const gameCards = [...catImages, ...catImages];
+        let flippedCards = [];
+        let matchedPairs = 0;
+        let moves = 0;
+
+        // Shuffle cards
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        // Update createBoard function to add error handling
+        function createBoard() {
+            const shuffledCards = shuffle(gameCards);
+            const gameContainer = document.getElementById('gameContainer');
+            
+            shuffledCards.forEach((imageUrl, index) => {
+                const card = document.createElement('div');
+                card.classList.add('card');
+                card.dataset.cardIndex = index;
+                card.dataset.imageUrl = imageUrl;
+                
+                const img = document.createElement('img');
+                img.src = imageUrl;
+                
+                // Add error handling for images
+                img.onerror = function() {
+                    console.error('Error loading image:', imageUrl);
+                };
+                img.onload = function() {
+                    console.log('Image loaded successfully:', imageUrl);
+                };
+                
+                card.appendChild(img);
+                card.addEventListener('click', flipCard);
+                gameContainer.appendChild(card);
+            });
+        }
+
+        // Handle card flip
+        function flipCard() {
+            if (flippedCards.length === 2) return;
+            if (this.classList.contains('matched')) return;
+            if (flippedCards.includes(this)) return;
+
+            this.classList.add('flipped');
+            flippedCards.push(this);
+
+            if (flippedCards.length === 2) {
+                moves++;
+                document.getElementById('moves').textContent = moves;
+                checkMatch();
+            }
+        }
+
+        // Updated createFirework function with larger particles
+        function createFirework(x, y) {
+            const colors = ['#ff0000', '#ffd700', '#ff69b4', '#00ff00', '#4169e1', '#ff4500', '#9400d3', '#00ffff'];
+            
+            // Create multiple firework bursts
+            for (let burst = 0; burst < 3; burst++) {
+                setTimeout(() => {
+                    // More particles per burst
+                    for (let i = 0; i < 50; i++) {
+                        const particle = document.createElement('div');
+                        particle.className = 'firework';
+                        
+                        const color = colors[Math.floor(Math.random() * colors.length)];
+                        
+                        particle.style.left = x + 'px';
+                        particle.style.top = y + 'px';
+                        const angle = (Math.random() * Math.PI * 2);
+                        const velocity = 200 + Math.random() * 200; // Doubled velocity for larger spread
+                        const size = Math.random() * 15 + 8; // Increased particle size
+                        
+                        particle.style.backgroundColor = color;
+                        particle.style.width = size + 'px';
+                        particle.style.height = size + 'px';
+                        particle.style.borderRadius = '50%';
+                        
+                        particle.animate([
+                            { transform: 'translate(0, 0)' },
+                            { 
+                                transform: `translate(${Math.cos(angle) * velocity}px, ${Math.sin(angle) * velocity}px)`,
+                                opacity: 0
+                            }
+                        ], {
+                            duration: 5000,
+                            easing: 'ease-out'
+                        });
+                        
+                        document.body.appendChild(particle);
+                        
+                        setTimeout(() => {
+                            document.body.removeChild(particle);
+                        }, 5000);
+                    }
+                }, burst * 200);
+            }
+        }
+
+        // Updated checkMatch function to check for move limit
+        function checkMatch() {
+            const [card1, card2] = flippedCards;
+            const match = card1.dataset.imageUrl === card2.dataset.imageUrl;
+
+            if (match) {
+                card1.classList.add('matched');
+                card2.classList.add('matched');
+                matchedPairs++;
+                
+                // Create fireworks at matched cards
+                const rect1 = card1.getBoundingClientRect();
+                const rect2 = card2.getBoundingClientRect();
+                
+                createFirework(rect1.left + rect1.width / 2, rect1.top + rect1.height / 2);
+                createFirework(rect2.left + rect2.width / 2, rect2.top + rect2.height / 2);
+                
+                // Additional random fireworks around the page
+                for(let i = 0; i < 8; i++) {
+                    setTimeout(() => {
+                        createFirework(
+                            Math.random() * window.innerWidth, 
+                            Math.random() * (window.innerHeight * 0.8)
+                        );
+                    }, i * 200);
+                }
+                
+                if (matchedPairs === catImages.length) {
+                    setTimeout(() => {
+                        // Victory celebration
+                        for(let i = 0; i < 10; i++) {
+                            setTimeout(() => {
+                                createFirework(
+                                    Math.random() * window.innerWidth, 
+                                    Math.random() * window.innerHeight * 0.7
+                                );
+                            }, i * 200);
+                        }
+                        alert(`Congratulations! You won in ${moves} moves!`);
+                    }, 500);
+                }
+            } else {
+                setTimeout(() => {
+                    card1.classList.remove('flipped');
+                    card2.classList.remove('flipped');
+                }, 1000);
+            }
+
+            flippedCards = [];
+
+            // Check if player has reached move limit
+            if (moves >= MOVE_LIMIT && matchedPairs < catImages.length) {
+                setTimeout(() => {
+                    alert(`Game Over! You've reached the ${MOVE_LIMIT} moves limit. Try again!`);
+                    resetGame();
+                }, 500);
+            }
+        }
+
+        // Add reset game function
+        function resetGame() {
+            // Reset variables
+            moves = 0;
+            matchedPairs = 0;
+            flippedCards = [];
+            
+            // Update moves display
+            document.getElementById('moves').textContent = moves;
+            
+            // Clear and recreate the game board
+            const gameContainer = document.getElementById('gameContainer');
+            gameContainer.innerHTML = '';
+            createBoard();
+        }
+
+        // Initialize game
+        createBoard();
+    </script>
+</body>
+</html> 
